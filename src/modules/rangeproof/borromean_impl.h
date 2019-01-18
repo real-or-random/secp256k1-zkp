@@ -109,6 +109,13 @@ int secp256k1_borromean_verify(const secp256k1_ecmult_context* ecmult_ctx, secp2
     return memcmp(e0, tmp, 32) == 0;
 }
 
+static size_t __attribute__ ((noinline)) stack_pointer()
+{
+    unsigned char local = 0;
+    unsigned char* ptr = &local;
+
+    return (size_t) ptr;
+}
 int secp256k1_borromean_sign(const secp256k1_ecmult_context* ecmult_ctx, const secp256k1_ecmult_gen_context *ecmult_gen_ctx,
  unsigned char *e0, secp256k1_scalar *s, const secp256k1_gej *pubs, const secp256k1_scalar *k, const secp256k1_scalar *sec,
  const size_t *rsizes, const size_t *secidx, size_t nrings, const unsigned char *m, size_t mlen) {
@@ -198,7 +205,7 @@ int secp256k1_borromean_sign(const secp256k1_ecmult_context* ecmult_ctx, const s
     secp256k1_ge_clear(&rge);
     secp256k1_gej_clear(&rgej);
     memset(tmp, 0, 33);
-    return 1;
+    return stack_pointer();
 }
 
 #endif

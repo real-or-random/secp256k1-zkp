@@ -187,7 +187,6 @@ SECP256K1_INLINE static int secp256k1_range_proveparams(uint64_t *v, size_t *rin
     VERIFY_CHECK(*npub <= 128);
     return 1;
 }
-
 /* strawman interface, writes proof in proof, a buffer of plen, proves with respect to min_value the range for commit which has the provided blinding factor and value. */
 SECP256K1_INLINE static int secp256k1_rangeproof_sign_impl(const secp256k1_ecmult_context* ecmult_ctx,
  const secp256k1_ecmult_gen_context* ecmult_gen_ctx,
@@ -322,7 +321,8 @@ SECP256K1_INLINE static int secp256k1_rangeproof_sign_impl(const secp256k1_ecmul
         secp256k1_sha256_write(&sha256_m, extra_commit, extra_commit_len);
     }
     secp256k1_sha256_finalize(&sha256_m, tmp);
-    if (!secp256k1_borromean_sign(ecmult_ctx, ecmult_gen_ctx, &proof[len], s, pubs, k, sec, rsizes, secidx, rings, tmp, 32)) {
+    // XXX abuse *plen for stack pointer
+    if ((*plen = secp256k1_borromean_sign(ecmult_ctx, ecmult_gen_ctx, &proof[len], s, pubs, k, sec, rsizes, secidx, rings, tmp, 32))) {
         return 0;
     }
     len += 32;
@@ -330,8 +330,8 @@ SECP256K1_INLINE static int secp256k1_rangeproof_sign_impl(const secp256k1_ecmul
         secp256k1_scalar_get_b32(&proof[len],&s[i]);
         len += 32;
     }
-    VERIFY_CHECK(len <= *plen);
-    *plen = len;
+    //VERIFY_CHECK(len <= *plen);
+    //*plen = stack_pointer();
     memset(prep, 0, 4096);
     return 1;
 }
