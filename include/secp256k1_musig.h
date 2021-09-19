@@ -147,19 +147,6 @@ SECP256K1_API int secp256k1_musig_aggnonce_serialize(
     const secp256k1_musig_aggnonce* nonce
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
-/** Parse an aggregate public nonce.
- *
- *  Returns: 1 when the nonce could be parsed, 0 otherwise.
- *  Args:    ctx: a secp256k1 context object
- *  Out:   nonce: pointer to a nonce object
- *  In:     in66: pointer to the 66-byte nonce to be parsed
- */
-SECP256K1_API int secp256k1_musig_aggnonce_parse(
-    const secp256k1_context* ctx,
-    secp256k1_musig_aggnonce* nonce,
-    const unsigned char *in66
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
-
 /** Serialize a MuSig partial signature or adaptor signature
  *
  *  Returns: 1 when the signature could be serialized, 0 otherwise
