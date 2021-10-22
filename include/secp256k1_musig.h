@@ -214,8 +214,7 @@ SECP256K1_API int secp256k1_musig_pubkey_agg(
  *
  *  This function is only useful before initializing a signing session. If you
  *  are only computing a public key, but not intending to create a signature for
- *  it, you can just use `secp256k1_xonly_pubkey_tweak_add`. Can only be called
- *  once with a given keyagg_cache.
+ *  it, you can just use `secp256k1_xonly_pubkey_tweak_add`.
  *
  *  Returns: 0 if the arguments are invalid or the resulting public key would be
  *           invalid (only when the tweak is the negation of the corresponding

@@ -418,12 +418,12 @@ int secp256k1_musig_nonce_process(const secp256k1_context* ctx, secp256k1_musig_
     secp256k1_schnorrsig_challenge(&session_i.challenge, fin_nonce, msg32, 32, agg_pk32);
 
     /* If there is a tweak then set `msghash` times `tweak` to the `s`-part.*/
-    secp256k1_scalar_clear(&session_i.s_part);
-    if (cache_i.is_tweaked) {
+    secp256k1_scalar_set_int(&session_i.s_part, 0);
+    if (!secp256k1_scalar_is_zero(&cache_i.tweak)) {
         secp256k1_scalar e_tmp = session_i.challenge;
         if (!secp256k1_eckey_privkey_tweak_mul(&e_tmp, &cache_i.tweak)) {
             /* This mimics the behavior of secp256k1_ec_seckey_tweak_mul regarding
-             * tweak being 0. */
+                * tweak being 0. */
             return 0;
         }
         if (secp256k1_fe_is_odd(&cache_i.pk.y)) {
@@ -489,8 +489,7 @@ int secp256k1_musig_partial_sign(const secp256k1_context* ctx, secp256k1_musig_p
     secp256k1_fe_normalize_var(&pk.y);
     if((secp256k1_fe_is_odd(&pk.y)
             + secp256k1_fe_is_odd(&cache_i.pk.y)
-            + (cache_i.is_tweaked
-                && cache_i.internal_key_parity))
+            + cache_i.internal_key_parity)
             % 2 == 1) {
         secp256k1_scalar_negate(&sk, &sk);
     }
@@ -571,8 +570,7 @@ int secp256k1_musig_partial_sig_verify(const secp256k1_context* ctx, const secp2
      * MuSig-aggregate point was tweaked then `e` is negated if the aggregate key
      * has an odd Y coordinate XOR the internal key has an odd Y coordinate.*/
     if (secp256k1_fe_is_odd(&cache_i.pk.y)
-            != (cache_i.is_tweaked
-                && cache_i.internal_key_parity)) {
+            != cache_i.internal_key_parity) {
         secp256k1_scalar_negate(&e, &e);
     }
 

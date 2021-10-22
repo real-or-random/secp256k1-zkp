@@ -251,11 +251,6 @@ void musig_api_tests(secp256k1_scratch_space *scratch) {
         CHECK(secp256k1_musig_pubkey_tweak_add(vrfy, &tmp_output_pk, tweak, &invalid_keyagg_cache) == 0);
         CHECK(ecount == 3);
         CHECK(memcmp(&tmp_output_pk, zeros68, sizeof(tmp_output_pk)) == 0);
-        /* Using the same keyagg_cache twice does not work */
-        CHECK(secp256k1_musig_pubkey_tweak_add(vrfy, &tmp_output_pk, tweak, &tmp_keyagg_cache) == 1);
-        CHECK(secp256k1_musig_pubkey_tweak_add(vrfy, &tmp_output_pk, tweak, &tmp_keyagg_cache) == 0);
-        CHECK(ecount == 4);
-        CHECK(memcmp(&tmp_output_pk, zeros68, sizeof(tmp_output_pk)) == 0);
     }
 
     /** Session creation **/
@@ -778,55 +773,45 @@ void musig_tweak_test_helper(const secp256k1_xonly_pubkey* agg_pk, const unsigne
     CHECK(secp256k1_schnorrsig_verify(ctx, final_sig, msg, sizeof(msg), agg_pk) == 1);
 }
 
-/* In this test we create a aggregate public key P and a commitment Q = P +
- * hash(P, contract)*G. Then we test that we can sign for both public keys. In
- * order to sign for Q we use the tweak32 argument of partial_sig_agg. */
+/* Create aggregate public key P, tweak multiple times and test signing */
 void musig_tweak_test(secp256k1_scratch_space *scratch) {
     unsigned char sk[2][32];
     secp256k1_xonly_pubkey pk[2];
     const secp256k1_xonly_pubkey *pk_ptr[2];
-    secp256k1_musig_keyagg_cache keyagg_cache_P;
-    secp256k1_musig_keyagg_cache keyagg_cache_Q;
-    secp256k1_xonly_pubkey P;
-    unsigned char P_serialized[32];
-    secp256k1_pubkey Q;
-    int Q_parity;
-    secp256k1_xonly_pubkey Q_xonly;
-    unsigned char Q_serialized[32];
-    secp256k1_sha256 sha;
-    unsigned char contract[32];
-    unsigned char ec_commit_tweak[32];
+    secp256k1_musig_keyagg_cache keyagg_cache;
+    secp256k1_xonly_pubkey P, *internal_key;
+    secp256k1_pubkey Q[2];
+    int Q_parity[2];
+    secp256k1_xonly_pubkey Q_xonly[2];
+    unsigned char Q_serialized[2][32];
+    unsigned char ec_commit_tweak[2][32];
     int i;
 
-    /* Setup */
-
+    /* Key Setup */
     for (i = 0; i < 2; i++) {
         pk_ptr[i] = &pk[i];
-
         secp256k1_testrand256(sk[i]);
         CHECK(create_keypair_and_pk(NULL, &pk[i], sk[i]) == 1);
     }
-    secp256k1_testrand256(contract);
+    /* Compute P = keyagg(pk0, pk1) and test signing for it */
+    CHECK(secp256k1_musig_pubkey_agg(ctx, scratch, &P, &keyagg_cache, pk_ptr, 2) == 1);
+    musig_tweak_test_helper(&P, sk[0], sk[1], &keyagg_cache);
 
-    CHECK(secp256k1_musig_pubkey_agg(ctx, scratch, &P, &keyagg_cache_P, pk_ptr, 2) == 1);
-
-    CHECK(secp256k1_xonly_pubkey_serialize(ctx, P_serialized, &P) == 1);
-    secp256k1_sha256_initialize(&sha);
-    secp256k1_sha256_write(&sha, P_serialized, 32);
-    secp256k1_sha256_write(&sha, contract, 32);
-    secp256k1_sha256_finalize(&sha, ec_commit_tweak);
-    keyagg_cache_Q = keyagg_cache_P;
-    CHECK(secp256k1_musig_pubkey_tweak_add(ctx, &Q, ec_commit_tweak, &keyagg_cache_Q) == 1);
-    CHECK(secp256k1_xonly_pubkey_from_pubkey(ctx, &Q_xonly, &Q_parity, &Q));
-    CHECK(secp256k1_xonly_pubkey_serialize(ctx, Q_serialized, &Q_xonly));
-    /* Check that musig_pubkey_tweak_add produces same result as
-     * xonly_pubkey_tweak_add. */
-    CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, Q_serialized, Q_parity, &P, ec_commit_tweak) == 1);
-
-    /* Test signing for P */
-    musig_tweak_test_helper(&P, sk[0], sk[1], &keyagg_cache_P);
-    /* Test signing for Q */
-    musig_tweak_test_helper(&Q_xonly, sk[0], sk[1], &keyagg_cache_Q);
+    /* Compute Qi = Qj + tweaki*G where Qj = P if i = 0 and j = i-1 otherwise.
+     * Also test signing for it. */
+    internal_key = &P;
+    for (i = 0; i < 2; i++) {
+        secp256k1_testrand256(ec_commit_tweak[i]);
+        CHECK(secp256k1_musig_pubkey_tweak_add(ctx, &Q[i], ec_commit_tweak[i], &keyagg_cache) == 1);
+        CHECK(secp256k1_xonly_pubkey_from_pubkey(ctx, &Q_xonly[i], &Q_parity[i], &Q[i]));
+        CHECK(secp256k1_xonly_pubkey_serialize(ctx, Q_serialized[i], &Q_xonly[i]));
+        /* Check that musig_pubkey_tweak_add produces same result as
+        * xonly_pubkey_tweak_add. */
+        if (i > 0) internal_key = &Q_xonly[i-1];
+        CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, Q_serialized[i], Q_parity[i], internal_key, ec_commit_tweak[i]) == 1);
+        /* Test signing for Q[i] */
+        musig_tweak_test_helper(&Q_xonly[i], sk[0], sk[1], &keyagg_cache);
+    }
 }
 
 void musig_test_vectors_keyagg_helper(const unsigned char **pk_ser, int n_pks, const unsigned char *agg_pk_expected, int has_second_pk, int second_pk_idx) {

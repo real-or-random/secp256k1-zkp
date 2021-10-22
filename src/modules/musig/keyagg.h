@@ -11,7 +11,6 @@ typedef struct {
     secp256k1_ge pk;
     secp256k1_fe second_pk_x;
     const unsigned char *pk_hash;
-    int is_tweaked;
     secp256k1_scalar tweak;
     int internal_key_parity;
 } secp256k1_keyagg_cache_internal;
