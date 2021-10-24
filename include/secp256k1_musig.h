@@ -186,7 +186,7 @@ SECP256K1_API int secp256k1_musig_partial_sig_parse(
  *  This is useful to do before pubkey_agg, such that the order of pubkeys
  *  does not affect the aggregate public key.
  *
- *  Returns: 1 if the public keys were successfully aggregated, 0 otherwise
+ *  Returns: 0 if the arguments are invalid, 1 otherwise
  *  Args:        ctx: pointer to a context object initialized for verification
  *           scratch: scratch space used to compute the aggregate pubkey by
  *                    multiexponentiation. If NULL, an inefficient algorithm is used.
@@ -382,7 +382,7 @@ SECP256K1_API int secp256k1_musig_partial_sign(
  *  who produced an invalid signature, so that signing can be restarted without them.
  *
  *  Returns: 0 if the arguments are invalid or the partial signature does not
- *           verify
+ *           verify, 1 otherwise
  *  Args         ctx: pointer to a context object, initialized for verification
  *  In:  partial_sig: pointer to partial signature to verify
  *          pubnonce: public nonce sent by the signer who produced the
@@ -404,8 +404,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_partial_sig_verif
 
 /** Aggregates partial signatures
  *
- *  Returns: 0 if the arguments are invalid or a partial_sig is out of range, 1
- *           otherwise (which does NOT mean the resulting signature verifies).
+ *  Returns: 0 if the arguments are invalid, 1 otherwise (which does NOT mean
+ *           the resulting signature verifies).
  *  Args:         ctx: pointer to a context object
  *  Out:        sig64: complete Schnorr signature
  *  In:       session: pointer to the session that was created with
@@ -425,7 +425,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_partial_sig_agg(
  *
  *  This is used for adaptor signatures.
  *
- *  Returns: 0 if one of the arguments was NULL, and 1 otherwise.
+ *  Returns: 0 if the arguments are invalid, 1 otherwise
  *  Args:         ctx: pointer to a context object
  *  Out: nonce_parity: pointer to an integer that indicates the parity
  *                     of the aggregate public nonce. Used for adaptor
@@ -444,9 +444,9 @@ int secp256k1_musig_nonce_parity(
  *  If the sec_adaptor32 argument is incorrect, the adapted signature will be
  *  invalid. This function does not verify the adapted signature.
  *
- *  Returns: 1: signature and secret adaptor contained valid values (which does
- *              NOT mean the signature or the adaptor are valid!)
- *           0: otherwise
+ *  Returns: 0 if the arguments are invalid, or sig64 or sec_adaptor32 contain
+ *           invalid (overflowing) values. 1 otherwise (which does NOT mean the
+ *           signature or the adaptor are valid!)
  *  Args:         ctx: pointer to a context object
  *  In/Out:     sig64: 64-byte pre-signature that is adapted to a full signature
  *  In: sec_adaptor32: 32-byte secret adaptor to add to the partial signature
@@ -469,10 +469,9 @@ SECP256K1_API int secp256k1_musig_adapt(
  *  steps of any protocol that uses this function. In particular, this includes
  *  verifying all partial signatures that were aggregated into pre_sig64.
  *
- *  Returns: 1: signatures contained valid data such that an adaptor could be
- *              extracted (which does NOT mean the signatures or the adaptor are
- *              valid!)
- *           0: otherwise
+ *  Returns: 0 if the arguments are invalid, or sig64 or pre_sig64 contain
+ *           invalid (overflowing) values. 1 otherwise (which does NOT mean the
+ *           signatures or the adaptor are valid!)
  *  Args:         ctx: pointer to a context object
  *  Out:sec_adaptor32: 32-byte secret adaptor
  *  In:         sig64: complete, valid 64-byte signature
