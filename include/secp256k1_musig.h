@@ -287,7 +287,7 @@ SECP256K1_API int secp256k1_musig_nonce_gen(
     const unsigned char *msg32,
     const secp256k1_musig_keyagg_cache *keyagg_cache,
     const unsigned char *extra_input32
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(4);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
 /** Aggregates the nonces of every signer into a single nonce
  *
