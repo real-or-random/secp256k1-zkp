@@ -206,7 +206,7 @@ SECP256K1_API int secp256k1_musig_pubkey_agg(
     secp256k1_musig_keyagg_cache *keyagg_cache,
     const secp256k1_xonly_pubkey * const* pubkeys,
     size_t n_pubkeys
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(5);
 
 /** Tweak an x-only public key by adding the generator multiplied with tweak32
  *  to it. The resulting output_pubkey with the original agg_pk output of
