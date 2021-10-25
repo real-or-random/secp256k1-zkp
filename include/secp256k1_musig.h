@@ -189,7 +189,10 @@ SECP256K1_API int secp256k1_musig_partial_sig_parse(
  *  Returns: 0 if the arguments are invalid, 1 otherwise
  *  Args:        ctx: pointer to a context object initialized for verification
  *           scratch: scratch space used to compute the aggregate pubkey by
- *                    multiexponentiation. If NULL, an inefficient algorithm is used.
+ *                    multiexponentiation. Generally, a the larger the scratch
+ *                    space, the faster this function. However, the returns of
+ *                    providing a larger scratch space are diminishing. If NULL,
+ *                    an inefficient algorithm is used.
  *  Out:      agg_pk: the MuSig-aggregated xonly public key. If you do not need it,
  *                    this arg can be NULL.
  *      keyagg_cache: if non-NULL, pointer to a musig_keyagg_cache struct that
@@ -208,13 +211,19 @@ SECP256K1_API int secp256k1_musig_pubkey_agg(
     size_t n_pubkeys
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(5);
 
-/** Tweak an x-only public key by adding the generator multiplied with tweak32
- *  to it. The resulting output_pubkey with the original agg_pk output of
- *  musig_pubkey_agg and tweak passes `secp256k1_xonly_pubkey_tweak_test`.
+/** Tweak an x-only public key corresponding to a given keyagg_cache by adding
+ *  the generator multiplied with tweak32 to it.
  *
- *  This function is only useful before initializing a signing session. If you
- *  are only computing a public key, but not intending to create a signature for
- *  it, you can just use `secp256k1_xonly_pubkey_tweak_add`.
+ *  The resulting output_pubkey with the pubkey corresponding to the
+ *  keyagg_cache as the internal_pubkey argument and the same tweak32 passes
+ *  `secp256k1_xonly_pubkey_tweak_add_check`. For example, if the keyagg_cache
+ *  was just initialized with `musig_pubkey_agg` then the internal_pubkey is
+ *  equal to the agg_pk output argument.
+ *
+ *  This function is required if you want to _sign_ for a tweaked aggregate key.
+ *  On the other hand, If you are only computing a public key, but not intending
+ *  to create a signature for it, you can just use
+ *  `secp256k1_xonly_pubkey_tweak_add`.
  *
  *  Returns: 0 if the arguments are invalid or the resulting public key would be
  *           invalid (only when the tweak is the negation of the corresponding

@@ -15,12 +15,12 @@
 #include <secp256k1_schnorrsig.h>
 #include <secp256k1_musig.h>
 
-struct signer_secrets_t {
+struct signer_secrets {
     secp256k1_keypair keypair;
     secp256k1_musig_secnonce secnonce;
 };
 
-struct signer_t {
+struct signer {
     secp256k1_xonly_pubkey pubkey;
     secp256k1_musig_pubnonce pubnonce;
     secp256k1_musig_partial_sig partial_sig;
@@ -29,8 +29,7 @@ struct signer_t {
  /* Number of public keys involved in creating the aggregate signature */
 #define N_SIGNERS 3
  /* Create a key pair and store it in seckey and pubkey */
-int create_keypair(const secp256k1_context* ctx, struct signer_secrets_t *signer_secrets, struct signer_t *signer) {
-    int ret;
+int create_keypair(const secp256k1_context* ctx, struct signer_secrets *signer_secrets, struct signer *signer) {
     unsigned char seckey[32];
     FILE *frand = fopen("/dev/urandom", "r");
     if (frand == NULL) {
@@ -44,18 +43,20 @@ int create_keypair(const secp256k1_context* ctx, struct signer_secrets_t *signer
     /* The probability that this not a valid secret key is approximately 2^-128 */
     } while (!secp256k1_ec_seckey_verify(ctx, seckey));
     fclose(frand);
-    ret = secp256k1_keypair_create(ctx, &signer_secrets->keypair, seckey);
-    ret &= secp256k1_keypair_xonly_pub(ctx, &signer->pubkey, NULL, &signer_secrets->keypair);
-
-    return ret;
+    if (!secp256k1_keypair_create(ctx, &signer_secrets->keypair, seckey)) {
+        return 0;
+    }
+    if (!secp256k1_keypair_xonly_pub(ctx, &signer->pubkey, NULL, &signer_secrets->keypair)) {
+        return 0;
+    }
+    return 1;
 }
 
 /* Sign a message hash with the given key pairs and store the result in sig */
-int sign(const secp256k1_context* ctx, struct signer_secrets_t *signer_secrets, struct signer_t *signer, const unsigned char* msg32, unsigned char *sig64) {
+int sign(const secp256k1_context* ctx, struct signer_secrets *signer_secrets, struct signer *signer, const unsigned char* msg32, unsigned char *sig64) {
     int i;
     const secp256k1_xonly_pubkey *pubkeys[N_SIGNERS];
     const secp256k1_musig_pubnonce *pubnonces[N_SIGNERS];
-    secp256k1_musig_aggnonce agg_pubnonce;
     const secp256k1_musig_partial_sig *partial_sigs[N_SIGNERS];
     /* The same for all signers */
     secp256k1_musig_keyagg_cache cache;
@@ -91,6 +92,7 @@ int sign(const secp256k1_context* ctx, struct signer_secrets_t *signer_secrets, 
     /* Communication round 1: Exchange nonces */
     for (i = 0; i < N_SIGNERS; i++) {
         secp256k1_xonly_pubkey agg_pk;
+        secp256k1_musig_aggnonce agg_pubnonce;
 
         /* Create aggregate pubkey, aggregate nonce and initialize signer data */
         if (!secp256k1_musig_pubkey_agg(ctx, NULL, &agg_pk, &cache, pubkeys, N_SIGNERS)) {
@@ -134,8 +136,8 @@ int sign(const secp256k1_context* ctx, struct signer_secrets_t *signer_secrets, 
  int main(void) {
     secp256k1_context* ctx;
     int i;
-    struct signer_secrets_t signer_secrets[N_SIGNERS];
-    struct signer_t signers[N_SIGNERS];
+    struct signer_secrets signer_secrets[N_SIGNERS];
+    struct signer signers[N_SIGNERS];
     const secp256k1_xonly_pubkey *pubkeys_ptr[N_SIGNERS];
     secp256k1_xonly_pubkey agg_pk;
     unsigned char msg[32] = "this_could_be_the_hash_of_a_msg!";
