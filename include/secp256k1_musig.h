@@ -227,7 +227,7 @@ SECP256K1_API int secp256k1_musig_pubkey_agg(
  *
  *  Returns: 0 if the arguments are invalid or the resulting public key would be
  *           invalid (only when the tweak is the negation of the corresponding
- *           secret key) or if the key has already been tweaked. 1 otherwise.
+ *           secret key). 1 otherwise.
  *  Args:            ctx: pointer to a context object initialized for verification
  *  Out:   output_pubkey: pointer to a public key to store the result. Will be set
  *                        to an invalid value if this function returns 0. If you
