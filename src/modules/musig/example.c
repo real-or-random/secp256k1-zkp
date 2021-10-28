@@ -91,11 +91,10 @@ int sign(const secp256k1_context* ctx, struct signer_secrets *signer_secrets, st
     }
     /* Communication round 1: Exchange nonces */
     for (i = 0; i < N_SIGNERS; i++) {
-        secp256k1_xonly_pubkey agg_pk;
         secp256k1_musig_aggnonce agg_pubnonce;
 
         /* Create aggregate pubkey, aggregate nonce and initialize signer data */
-        if (!secp256k1_musig_pubkey_agg(ctx, NULL, &agg_pk, &cache, pubkeys, N_SIGNERS)) {
+        if (!secp256k1_musig_pubkey_agg(ctx, NULL, NULL, &cache, pubkeys, N_SIGNERS)) {
             return 0;
         }
         if(!secp256k1_musig_nonce_agg(ctx, &agg_pubnonce, pubnonces, N_SIGNERS)) {
