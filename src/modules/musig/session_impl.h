@@ -197,19 +197,19 @@ static int secp256k1_xonly_ge_serialize(unsigned char *output32, secp256k1_ge *g
     return 1;
 }
 
-static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned char *session_id, const unsigned char *key32, const unsigned char *msg32, const unsigned char *agg_pk, const unsigned char *extra_input32) {
+static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned char *session_id, const unsigned char *key32, const unsigned char *msg32, const unsigned char *agg_pk32, const unsigned char *extra_input32) {
     secp256k1_sha256 sha;
-    unsigned char seed[32];
+    unsigned char buf[32];
     unsigned char i;
     enum { n_extra_in = 4 };
     const unsigned char *extra_in[n_extra_in];
 
     /* TODO: this doesn't have the same sidechannel resistance as the BIP340
      * nonce function because the seckey feeds directly into SHA. */
-    secp256k1_sha256_initialize_tagged(&sha, (unsigned char*)"MuSig/nonce", 11);
+    secp256k1_sha256_initialize_tagged(&sha, (unsigned char*)"MuSig/nonce", sizeof("MuSig/nonce"));
     secp256k1_sha256_write(&sha, session_id, 32);
     extra_in[0] = key32;
-    extra_in[1] = agg_pk;
+    extra_in[1] = agg_pk32;
     extra_in[2] = msg32;
     extra_in[3] = extra_input32;
     for (i = 0; i < n_extra_in; i++) {
@@ -223,16 +223,11 @@ static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned c
             secp256k1_sha256_write(&sha, &marker, 1);
         }
     }
-    secp256k1_sha256_finalize(&sha, seed);
-
-    for (i = 0; i < 2; i++) {
-        unsigned char buf[32];
-        secp256k1_sha256_initialize(&sha);
-        secp256k1_sha256_write(&sha, seed, 32);
-        secp256k1_sha256_write(&sha, &i, 1);
-        secp256k1_sha256_finalize(&sha, buf);
-        secp256k1_scalar_set_b32(&k[i], buf, NULL);
-    }
+    secp256k1_sha256_finalize(&sha, buf);
+    secp256k1_scalar_set_b32(&k[0], buf, NULL);
+    secp256k1_sha256_write(&sha, ".", 1);
+    secp256k1_sha256_finalize(&sha, buf);
+    secp256k1_scalar_set_b32(&k[1], buf, NULL);
 }
 
 int secp256k1_musig_nonce_gen(const secp256k1_context* ctx, secp256k1_musig_secnonce *secnonce, secp256k1_musig_pubnonce *pubnonce, const unsigned char *session_id32, const unsigned char *seckey, const unsigned char *msg32, const secp256k1_musig_keyagg_cache *keyagg_cache, const unsigned char *extra_input32) {
