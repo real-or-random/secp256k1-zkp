@@ -15,26 +15,26 @@ extern "C" {
  *  Returns 1 on success, 0 on failure.
  *  Args:           ctx: a secp256k1 context object.
  *  In/Out:      aggsig: pointer to the serialized aggregate signature
- *                       that is input. Will be overwritten by the new
- *                       serialized aggregate signature.
- *          aggsig_size: size of the memory allocated in aggsig.
+ *                       that is input. The first 32*(n_before+1) of this
+ *                       array should hold the input aggsig. It will be
+ *                       overwritten by the new serialized aggregate signature.
+ *                       It should be large enough for that, see aggsig_size.
+ *          aggsig_size: size of aggsig array in bytes.
  *                       Should be large enough to hold the new
- *                       serialized aggregate signature.
- *                       I.e., should be a multiple of 32 and should
- *                       satisfy aggsig_size >= 32*(n_before+n_new+1)
- *  In:     all_pubkeys: Array of x-only public keys, including both
- *                       the ones for the already aggregated signature
+ *                       serialized aggregate signature, i.e.,
+ *                       should satisfy aggsig_size >= 32*(n_before+n_new+1).
+ *                       It will be overwritten to be the exact size of the
+ *                       resulting aggsig.
+ *  In:     all_pubkeys: Array of (n_before + n_new) many x-only public keys,
+ *                       including both the ones for the already aggregated signature
  *                       and the ones for the signatures that should be added.
- *                       Assumed to contain n = n_before + n_new many public keys.
- *           all_msgs32: Array of 32-byte messages, including both
- *                       the ones for the already aggregated signature
+ *           all_msgs32: Array of (n_before + n_new) many 32-byte messages,
+ *                       including both the ones for the already aggregated signature
  *                       and the ones for the signatures that should be added.
- *                       Assumed to contain n = n_before + n_new many messages.
- *           new_sigs64: Array of 64-byte signatures, containing the new
+ *           new_sigs64: Array of n_new many 64-byte signatures, containing the new
  *                       signatures that should be added.
- *                       Assumed to contain n_new many signatures.
- *             n_before: Number of signatures that are already "contained"
- *                       in the aggregate signature.
+ *             n_before: Number of signatures that have already been aggregated
+ *                       in the input aggregate signature.
  *                n_new: Number of signatures that should now be added
  *                       to the aggregate signature.
  */
@@ -57,12 +57,9 @@ SECP256K1_API int secp256k1_schnorrsig_inc_aggregate(
  *                       store the serialized aggregate signature.
  *  In/Out: aggsig_size: size of the aggsig array that is passed;
  *                       will be overwritten to be the exact size of aggsig.
- *  In:         pubkeys: Array of x-only public keys.
- *                       Assumed to contain n many public keys.
- *               msgs32: Array of 32-byte messages.
- *                       Assumed to contain n many messages.
- *               sigs64: Array of 64-byte signatures.
- *                       Assumed to contain n many signatures.
+ *  In:         pubkeys: Array of n many x-only public keys.
+ *               msgs32: Array of n many 32-byte messages.
+ *               sigs64: Array of n many 64-byte signatures.
  *                    n: number of signatures to be aggregated.
  */
 SECP256K1_API int secp256k1_schnorrsig_aggregate(
@@ -80,10 +77,8 @@ SECP256K1_API int secp256k1_schnorrsig_aggregate(
  *  Returns:          1: correct signature.
  *                    0: incorrect signature.
  *  Args:           ctx: a secp256k1 context object.
- *  In:         pubkeys: Array of x-only public keys.
- *                       Assumed to contain n many public keys.
- *               msgs32: Array of 32-byte messages.
- *                       Assumed to contain n many messages.
+ *  In:         pubkeys: Array of n many x-only public keys.
+ *               msgs32: Array of n many 32-byte messages.
  *                    n: number of signatures to that have been aggregated.
  *               aggsig: Pointer to an array of aggsig_size many bytes
  *                       containing the serialized aggregate
