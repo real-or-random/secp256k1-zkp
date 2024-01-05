@@ -29,7 +29,7 @@ void test_schnorrsig_aggregate(void) {
     unsigned char msgs32[N*32];
     unsigned char sigs64[N*64];
     unsigned char aggsig[32*(N + 1)];
-    size_t aggsig_size = 32*(N + 1);
+    size_t aggsig_len = 32*(N + 1);
 
     /* create N many Schnorr keys and sigs for random messages */
     for (i = 0; i < N; ++i) {
@@ -44,14 +44,14 @@ void test_schnorrsig_aggregate(void) {
     }
 
     /* aggregate the first N_INITIAL of them */
-    CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, sigs64, N_INITIAL));
+    CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, sigs64, N_INITIAL));
     /* make sure that the aggregate signature verifies */
-    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N_INITIAL, aggsig, aggsig_size));
+    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N_INITIAL, aggsig, aggsig_len));
     /* aggregate the remaining N_NEW many signatures to the already existing ones */
-    aggsig_size = 32*(N + 1);
-    secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW);
+    aggsig_len = 32*(N + 1);
+    secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW);
     /* make sure that the aggregate signature verifies */
-    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_size));
+    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_len));
 }
 
 /* this tests the test vectors from
@@ -61,7 +61,7 @@ void test_schnorrsig_aggregate_spec_vectors(void) {
     /* Test vector 0 */
     {
         int n = 0;
-        int aggsig_size = 32;
+        int aggsig_len = 32;
         /* ugly trick: setting size to 1, because C     */
         /* complains about zero-size arrays             */
         const unsigned char pubkeys_ser[32] = {
@@ -79,12 +79,12 @@ void test_schnorrsig_aggregate_spec_vectors(void) {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         };
         CHECK(secp256k1_xonly_pubkey_parse(CTX, &pubkeys[0], &pubkeys_ser[0]));
-        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, n, aggsig, aggsig_size));
+        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, n, aggsig, aggsig_len));
     }
     /* Test vector 1 */
     {
         int n = 1;
-        int aggsig_size = 32+32;
+        int aggsig_len = 32+32;
         const unsigned char pubkeys_ser[32] = {
             0x1b, 0x84, 0xc5, 0x56, 0x7b, 0x12, 0x64, 0x40,
             0x99, 0x5d, 0x3e, 0xd5, 0xaa, 0xba, 0x05, 0x65,
@@ -112,12 +112,12 @@ void test_schnorrsig_aggregate_spec_vectors(void) {
         for (i = 0; i < n; ++i) {
             CHECK(secp256k1_xonly_pubkey_parse(CTX, &pubkeys[i], &pubkeys_ser[i*32]));
         }
-        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, n, aggsig, aggsig_size));
+        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, n, aggsig, aggsig_len));
     }
     /* Test vector 2 */
     {
         int n = 2;
-        int aggsig_size = 2*32+32;
+        int aggsig_len = 2*32+32;
         const unsigned char pubkeys_ser[2*32] = {
             0x1b, 0x84, 0xc5, 0x56, 0x7b, 0x12, 0x64, 0x40,
             0x99, 0x5d, 0x3e, 0xd5, 0xaa, 0xba, 0x05, 0x65,
@@ -159,7 +159,7 @@ void test_schnorrsig_aggregate_spec_vectors(void) {
         for (i = 0; i < n; ++i) {
             CHECK(secp256k1_xonly_pubkey_parse(CTX, &pubkeys[i], &pubkeys_ser[i*32]));
         }
-        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, n, aggsig, aggsig_size));
+        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, n, aggsig, aggsig_len));
     }
 }
 
@@ -169,7 +169,7 @@ static void test_schnorrsig_aggregate_api(void) {
     unsigned char msgs32[N*32];
     unsigned char sigs64[N*64];
     unsigned char aggsig[32*(N + 1)];
-    size_t aggsig_size = 32*(N + 1);
+    size_t aggsig_len = 32*(N + 1);
     size_t size_max = (size_t) - 1;
     int i;
     for (i = 0; i < N; ++i) {
@@ -185,42 +185,42 @@ static void test_schnorrsig_aggregate_api(void) {
 
     /* Test body 1: Check API of function aggregate  */
     /* Should not accept NULL for any pointer input  */
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggregate(CTX, NULL, &aggsig_size, pubkeys, msgs32, sigs64, N_INITIAL));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggregate(CTX, NULL, &aggsig_len, pubkeys, msgs32, sigs64, N_INITIAL));
     CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggregate(CTX, aggsig, NULL, pubkeys, msgs32, sigs64, N_INITIAL));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_size, NULL, msgs32, sigs64, N_INITIAL));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_size, pubkeys, NULL, sigs64, N_INITIAL));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, NULL, N_INITIAL));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_len, NULL, msgs32, sigs64, N_INITIAL));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_len, pubkeys, NULL, sigs64, N_INITIAL));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, NULL, N_INITIAL));
 
     /* Test body 2: Check API of function inc_aggregate */
     /* Should not accept NULL for any pointer input     */
     /* Should not accept overflowing number of sigs     */
-    /* Should reject if aggsig_size is too small        */
-    CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, sigs64, N_INITIAL));
-    aggsig_size = 32*(N + 1);
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, NULL, &aggsig_size, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW));
+    /* Should reject if aggsig_len is too small        */
+    CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, sigs64, N_INITIAL));
+    aggsig_len = 32*(N + 1);
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, NULL, &aggsig_len, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW));
     CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, NULL, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_size, NULL, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_size, pubkeys, NULL, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, NULL, N_INITIAL, N_NEW));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, &sigs64[N_INITIAL*64], size_max, size_max));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, size_max));
-    aggsig_size = 32*N;
-    CHECK(secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW) == 0);
-    aggsig_size = 32*(N+1)-1;
-    CHECK(secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW) == 0);
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_len, NULL, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_len, pubkeys, NULL, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, NULL, N_INITIAL, N_NEW));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, &sigs64[N_INITIAL*64], size_max, size_max));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, size_max));
+    aggsig_len = 32*N;
+    CHECK(secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW) == 0);
+    aggsig_len = 32*(N+1)-1;
+    CHECK(secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW) == 0);
 
     /* Test body 3: Check API of function aggverify */
     /* Should not accept NULL for any pointer input */
-    /* Should reject for invalid aggsig_size        */
-    aggsig_size = 32*(N + 1);
-    CHECK(secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggverify(CTX, NULL, msgs32, N, aggsig, aggsig_size));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggverify(CTX, pubkeys, NULL, N, aggsig, aggsig_size));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, NULL, aggsig_size));
-    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_size + 1) == 0);
-    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_size - 1) == 0);
-    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_size + 32) == 0);
-    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_size - 32) == 0);
+    /* Should reject for invalid aggsig_len        */
+    aggsig_len = 32*(N + 1);
+    CHECK(secp256k1_schnorrsig_inc_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, &sigs64[N_INITIAL*64], N_INITIAL, N_NEW));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggverify(CTX, NULL, msgs32, N, aggsig, aggsig_len));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggverify(CTX, pubkeys, NULL, N, aggsig, aggsig_len));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, NULL, aggsig_len));
+    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_len + 1) == 0);
+    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_len - 1) == 0);
+    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_len + 32) == 0);
+    CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_len - 32) == 0);
 }
 
 
@@ -236,7 +236,7 @@ static void test_schnorrsig_aggregate_unforge(void) {
         secp256k1_xonly_pubkey pubkeys[N];
         unsigned char msgs32[N*32];
         unsigned char aggsig[32*(N + 1)];
-        size_t aggsig_size = 32*(N + 1);
+        size_t aggsig_len = 32*(N + 1);
         /* create N many Schnorr keys and random messages */
         for (i = 0; i < N; ++i) {
             unsigned char sk[32];
@@ -252,7 +252,7 @@ static void test_schnorrsig_aggregate_unforge(void) {
             secp256k1_testrand256(&aggsig[i*32]);
         }
         /* Make sure that it does not verify */
-        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_size) == 0);
+        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_len) == 0);
     }
     /* Test 2: We fix a set of N messages and compute valid
        signatures for all but one. For this final one, we sample
@@ -264,7 +264,7 @@ static void test_schnorrsig_aggregate_unforge(void) {
         unsigned char msgs32[N*32];
         unsigned char sigs64[N*64];
         unsigned char aggsig[32*(N + 1)];
-        size_t aggsig_size = 32*(N + 1);
+        size_t aggsig_len = 32*(N + 1);
 
         /* create N many Schnorr keys and sigs for random messages */
         for (i = 0; i < N; ++i) {
@@ -281,9 +281,9 @@ static void test_schnorrsig_aggregate_unforge(void) {
         secp256k1_testrand256(&sigs64[(N-1)*64]);
         secp256k1_testrand256(&sigs64[(N-1)*64+32]);
         /* Aggregate the N signatures */
-        CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, sigs64, N));
+        CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, sigs64, N));
         /* Make sure it does not verify */
-        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_size) == 0);
+        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_len) == 0);
     }
     /* Test 3: We generate a valid aggregate signature and then
        change one of the messages. This should not verify. */
@@ -293,7 +293,7 @@ static void test_schnorrsig_aggregate_unforge(void) {
         unsigned char msgs32[N*32];
         unsigned char sigs64[N*64];
         unsigned char aggsig[32*(N + 1)];
-        size_t aggsig_size = 32*(N + 1);
+        size_t aggsig_len = 32*(N + 1);
 
         /* create N many Schnorr keys and sigs for random messages */
         for (i = 0; i < N; ++i) {
@@ -307,11 +307,11 @@ static void test_schnorrsig_aggregate_unforge(void) {
             CHECK(secp256k1_schnorrsig_sign(CTX, &sigs64[i*64], &msgs32[i*32], &keypair, NULL));
         }
         /* Aggregate the N signatures */
-        CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, sigs64, N));
+        CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, sigs64, N));
         /* Change one of the messages */
         msgs32[1] = msgs32[1]^0xff;
         /* Make sure it does not verify */
-        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_size) == 0);
+        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_len) == 0);
     }
 }
 
@@ -328,7 +328,7 @@ static void test_schnorrsig_aggregate_overflow(void) {
         unsigned char msgs32[N*32];
         unsigned char sigs64[N*64];
         unsigned char aggsig[32*(N + 1)];
-        size_t aggsig_size = 32*(N + 1);
+        size_t aggsig_len = 32*(N + 1);
 
         /* create N many Schnorr keys and sigs for random messages */
         for (i = 0; i < N; ++i) {
@@ -343,7 +343,7 @@ static void test_schnorrsig_aggregate_overflow(void) {
         /* make one s (say the first one) overflow */
         memset(&sigs64[32], 0xFF, 32);
         /* check that aggregating fails */
-        CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, sigs64, N) == 0);
+        CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, sigs64, N) == 0);
     }
     /* Test 2: We check that verification returns 0 */
     /* if s overflows                               */
@@ -353,7 +353,7 @@ static void test_schnorrsig_aggregate_overflow(void) {
         unsigned char msgs32[N*32];
         unsigned char sigs64[N*64];
         unsigned char aggsig[32*(N + 1)];
-        size_t aggsig_size = 32*(N + 1);
+        size_t aggsig_len = 32*(N + 1);
 
         /* create N many Schnorr keys and sigs for random messages */
         for (i = 0; i < N; ++i) {
@@ -366,11 +366,11 @@ static void test_schnorrsig_aggregate_overflow(void) {
             CHECK(secp256k1_schnorrsig_sign(CTX, &sigs64[i*64], &msgs32[i*32], &keypair, NULL));
         }
         /* aggregate */
-        CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_size, pubkeys, msgs32, sigs64, N));
+        CHECK(secp256k1_schnorrsig_aggregate(CTX, aggsig, &aggsig_len, pubkeys, msgs32, sigs64, N));
         /* make s in the aggsig overflow */
         memset(&aggsig[N*32], 0xFF, 32);
         /* should not verify */
-        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_size) == 0);
+        CHECK(secp256k1_schnorrsig_aggverify(CTX, pubkeys, msgs32, N, aggsig, aggsig_len) == 0);
     }
 }
 

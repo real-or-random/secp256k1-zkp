@@ -22,7 +22,7 @@ void secp256k1_schnorrsig_sha256_tagged_aggregation(secp256k1_sha256 *sha) {
     sha->bytes = 64;
 }
 
-int secp256k1_schnorrsig_inc_aggregate(const secp256k1_context *ctx, unsigned char *aggsig, size_t *aggsig_size, const secp256k1_xonly_pubkey *all_pubkeys, const unsigned char *all_msgs32, const unsigned char *new_sigs64, size_t n_before, size_t n_new) {
+int secp256k1_schnorrsig_inc_aggregate(const secp256k1_context *ctx, unsigned char *aggsig, size_t *aggsig_len, const secp256k1_xonly_pubkey *all_pubkeys, const unsigned char *all_msgs32, const unsigned char *new_sigs64, size_t n_before, size_t n_new) {
     size_t i;
     size_t n;
     int overflow;
@@ -31,15 +31,15 @@ int secp256k1_schnorrsig_inc_aggregate(const secp256k1_context *ctx, unsigned ch
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(aggsig != NULL);
-    ARG_CHECK(aggsig_size != NULL);
+    ARG_CHECK(aggsig_len != NULL);
     ARG_CHECK(all_pubkeys != NULL);
     ARG_CHECK(all_msgs32 != NULL);
     ARG_CHECK(new_sigs64 != NULL);
 
-    /* Check that aggsig_size is large enough, i.e. aggsig_size >= 32*(n+1) */
+    /* Check that aggsig_len is large enough, i.e. aggsig_len >= 32*(n+1) */
     n = n_before + n_new;
     ARG_CHECK(n >= n_before);
-    if ((*aggsig_size / 32) <= 0 || ((*aggsig_size / 32) - 1) < n) {
+    if ((*aggsig_len / 32) <= 0 || ((*aggsig_len / 32) - 1) < n) {
         return 0;
     }
 
@@ -109,15 +109,15 @@ int secp256k1_schnorrsig_inc_aggregate(const secp256k1_context *ctx, unsigned ch
     }
     /* copy new s into aggsig */
     secp256k1_scalar_get_b32(&aggsig[n*32], &s);
-    *aggsig_size = 32 * (1 + n);
+    *aggsig_len = 32 * (1 + n);
     return 1;
 }
 
-int secp256k1_schnorrsig_aggregate(const secp256k1_context *ctx, unsigned char *aggsig, size_t *aggsig_size, const secp256k1_xonly_pubkey *pubkeys, const unsigned char *msgs32, const unsigned char *sigs64, size_t n) {
-    return secp256k1_schnorrsig_inc_aggregate(ctx, aggsig, aggsig_size, pubkeys, msgs32, sigs64, 0, n);
+int secp256k1_schnorrsig_aggregate(const secp256k1_context *ctx, unsigned char *aggsig, size_t *aggsig_len, const secp256k1_xonly_pubkey *pubkeys, const unsigned char *msgs32, const unsigned char *sigs64, size_t n) {
+    return secp256k1_schnorrsig_inc_aggregate(ctx, aggsig, aggsig_len, pubkeys, msgs32, sigs64, 0, n);
 }
 
-int secp256k1_schnorrsig_aggverify(const secp256k1_context *ctx, const secp256k1_xonly_pubkey *pubkeys, const unsigned char *msgs32, size_t n, const unsigned char *aggsig, size_t aggsig_size) {
+int secp256k1_schnorrsig_aggverify(const secp256k1_context *ctx, const secp256k1_xonly_pubkey *pubkeys, const unsigned char *msgs32, size_t n, const unsigned char *aggsig, size_t aggsig_len) {
     size_t i;
     secp256k1_gej lhs, rhs;
     secp256k1_scalar s;
@@ -130,8 +130,8 @@ int secp256k1_schnorrsig_aggverify(const secp256k1_context *ctx, const secp256k1
     ARG_CHECK(aggsig != NULL);
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
 
-    /* Check that aggsig_size is correct, i.e. aggsig_size = 32*(n+1) */
-    if ((aggsig_size / 32) <= 0 || ((aggsig_size / 32)-1) != n || (aggsig_size % 32) != 0) {
+    /* Check that aggsig_len is correct, i.e., aggsig_len = 32*(n+1) */
+    if ((aggsig_len / 32) <= 0 || ((aggsig_len / 32)-1) != n || (aggsig_len % 32) != 0) {
         return 0;
     }
 
