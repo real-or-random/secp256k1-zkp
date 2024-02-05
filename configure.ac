@@ -625,6 +625,9 @@ echo "  module ellswift         = $enable_module_ellswift"
 echo "  module generator        = $enable_module_generator"
 echo "  module rangeproof       = $enable_module_rangeproof"
 echo "  module surjectionproof  = $enable_module_surjectionproof"
+if test x"$enable_module_surjectionproof" = x"yes"; then
+echo "    reduced proof size    = $use_reduced_surjection_proof_size"
+fi
 echo "  module whitelist        = $enable_module_whitelist"
 echo "  module musig            = $enable_module_musig"
 echo "  module ecdsa-s2c        = $enable_module_ecdsa_s2c"
